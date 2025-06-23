@@ -1,7 +1,7 @@
 module Pinching4Model
 
 
-mutable struct Pinching4Object
+mutable struct Inputs
     d::Vector{Float64}         # Displacement/strain history
     dmgtype::String            # "energy" or "cycle"
 
@@ -32,18 +32,23 @@ mutable struct Pinching4Object
     rForceN::Float64
     uForceN::Float64
 
-    gK::Vector{Float64}        # Stiffness degradation (gK1 to gK4)
-    gKLim::Float64
-    gD::Vector{Float64}        # Deformation degradation (gD1 to gD4)
-    gDLim::Float64
-    gF::Vector{Float64}        # Strength degradation (gF1 to gF4)
-    gFLim::Float64
-    gE::Float64                # Energy-based degradation multiplier
-
     # Damage model coefficients
     gammaK1::Float64; gammaK2::Float64; gammaK3::Float64; gammaK4::Float64; gammaKLimit::Float64
     gammaD1::Float64; gammaD2::Float64; gammaD3::Float64; gammaD4::Float64; gammaDLimit::Float64
     gammaF1::Float64; gammaF2::Float64; gammaF3::Float64; gammaF4::Float64; gammaFLimit::Float64
+
+    # gK::Vector{Float64}        # Stiffness degradation (gK1 to gK4)
+    # gKLim::Float64
+    # gD::Vector{Float64}        # Deformation degradation (gD1 to gD4)
+    # gDLim::Float64
+    # gF::Vector{Float64}        # Strength degradation (gF1 to gF4)
+    # gFLim::Float64
+    gE::Float64                # Energy-based degradation multiplier
+
+    
+    # gammaK1::Float64; gammaK2::Float64; gammaK3::Float64; gammaK4::Float64; gammaKLimit::Float64
+    # gammaD1::Float64; gammaD2::Float64; gammaD3::Float64; gammaD4::Float64; gammaDLimit::Float64
+    # gammaF1::Float64; gammaF2::Float64; gammaF3::Float64; gammaF4::Float64; gammaFLimit::Float64
 
 
 end
@@ -54,7 +59,7 @@ end
 
 
 
-function Pinching4(MDL::Pinching4Object)
+function response(MDL::Inputs)
     # Initialize arrays and variables
     envlpPosStrain = zeros(6)
     envlpPosStress = zeros(6)
@@ -173,7 +178,7 @@ end
 
 
 
-function SetEnvelop(MDL::Pinching4Object)
+function SetEnvelop(MDL::Inputs)
     # Initialize outputs
     envlpPosStrain = zeros(6)
     envlpPosStress = zeros(6)
@@ -337,7 +342,7 @@ function setTrialStrain(
     envlpNegStrain::Vector{Float64}, envlpNegStress::Vector{Float64},
     kElasticPos::Float64, kElasticNeg::Float64, Cstress::Float64,
     DmgCyc::Int, CnCycle::Float64, energyCapacity::Float64,
-    MDL::Pinching4Object,
+    MDL::Inputs,
     Tstate::Int, Tenergy::Float64, Tstrain::Float64,
     lowTstateStrain::Float64, hghTstateStrain::Float64,
     lowTstateStress::Float64, hghTstateStress::Float64,
@@ -715,7 +720,7 @@ function updateDmg(
     envlpPosDamgdStress::Vector{Float64}, envlpNegDamgdStress::Vector{Float64},
     kElasticPos::Float64, kElasticNeg::Float64,
     TnCycle::Float64, TgammaK::Float64, TgammaD::Float64, TgammaF::Float64,
-    MDL::Pinching4Object
+    MDL::Inputs
 )
     tes = 0.0
     umaxAbs = max(TmaxStrainDmnd, -TminStrainDmnd)
@@ -975,7 +980,7 @@ function getstate3!(
 end
 
 
-function getstate4!(state4Strain, state4Stress, kunload, kElasticPosDamgd,
+function getstate4(state4Strain, state4Stress, kunload, kElasticPosDamgd,
                     lowTstateStrain, lowTstateStress, TmaxStrainDmnd,
                     envlpPosStrain, envlpPosDamgdStress,
                     hghTstateStrain, hghTstateStress, MDL)
@@ -1087,6 +1092,163 @@ function getstate4!(state4Strain, state4Stress, kunload, kElasticPosDamgd,
 
     return state4Strain, state4Stress
 
+end
+
+
+function posEnvlpTangent(u::Float64, envlpPosDamgdStress::Vector{Float64}, envlpPosStrain::Vector{Float64})::Float64
+    k = 0.0
+    i = 1
+
+    while k == 0.0 && i <= 5
+        if u <= envlpPosStrain[i+1]
+            k = (envlpPosDamgdStress[i+1] - envlpPosDamgdStress[i]) / (envlpPosStrain[i+1] - envlpPosStrain[i])
+        end
+        i += 1
+    end
+
+    if k == 0.0
+        k = (envlpPosDamgdStress[6] - envlpPosDamgdStress[5]) / (envlpPosStrain[6] - envlpPosStrain[5])
+    end
+
+    return k
+end
+
+
+function getstate3(state3Strain, state3Stress, kunload, kElasticNegDamgd,
+                    lowTstateStrain, lowTstateStress, TminStrainDmnd,
+                    envlpNegStrain, envlpNegDamgdStress,
+                    hghTstateStrain, hghTstateStress, MDL)
+
+    kmax = max(kunload, kElasticNegDamgd)
+
+    if state3Strain[1] * state3Strain[4] < 0.0
+        state3Strain[2] = lowTstateStrain * MDL.rDispN
+
+        if MDL.rForceN - MDL.uForceN > 1e-8
+            state3Stress[2] = lowTstateStress * MDL.rForceN
+        else
+            if TminStrainDmnd < envlpNegStrain[4]
+                st1 = lowTstateStress * MDL.uForceN * (1.0 + 1e-6)
+                st2 = envlpNegDamgdStress[5] * (1.0 + 1e-6)
+                state3Stress[2] = min(st1, st2)
+            else
+                st1 = envlpNegDamgdStress[4] * MDL.uForceN * (1.0 + 1e-6)
+                st2 = envlpNegDamgdStress[5] * (1.0 + 1e-6)
+                state3Stress[2] = min(st1, st2)
+            end
+        end
+
+        if (state3Stress[2] - state3Stress[1]) / (state3Strain[2] - state3Strain[1]) > kElasticNegDamgd
+            state3Strain[2] = lowTstateStrain + (state3Stress[2] - state3Stress[1]) / kElasticNegDamgd
+        end
+
+        if state3Strain[2] > state3Strain[4]
+            du = state3Strain[4] - state3Strain[1]
+            df = state3Stress[4] - state3Stress[1]
+            state3Strain[2] = state3Strain[1] + 0.33 * du
+            state3Strain[3] = state3Strain[1] + 0.67 * du
+            state3Stress[2] = state3Stress[1] + 0.33 * df
+            state3Stress[3] = state3Stress[1] + 0.67 * df
+        else
+            state3Stress[3] = TminStrainDmnd < envlpNegStrain[4] ?
+                              MDL.uForceN * envlpNegDamgdStress[5] :
+                              MDL.uForceN * envlpNegDamgdStress[4]
+
+            state3Strain[3] = hghTstateStrain - (hghTstateStress - state3Stress[3]) / kunload
+
+            if state3Strain[3] > state3Strain[4]
+                du = state3Strain[4] - state3Strain[2]
+                df = state3Stress[4] - state3Stress[2]
+                state3Strain[3] = state3Strain[2] + 0.5 * du
+                state3Stress[3] = state3Stress[2] + 0.5 * df
+            elseif (state3Stress[3] - state3Stress[2]) / (state3Strain[3] - state3Strain[2]) > kmax
+                du = state3Strain[4] - state3Strain[1]
+                df = state3Stress[4] - state3Stress[1]
+                state3Strain[2] = state3Strain[1] + 0.33 * du
+                state3Strain[3] = state3Strain[1] + 0.67 * du
+                state3Stress[2] = state3Stress[1] + 0.33 * df
+                state3Stress[3] = state3Stress[1] + 0.67 * df
+            elseif state3Strain[3] < state3Strain[2] ||
+                   (state3Stress[3] - state3Stress[2]) / (state3Strain[3] - state3Strain[2]) < 0
+                if state3Strain[3] < 0.0
+                    du = state3Strain[4] - state3Strain[2]
+                    df = state3Stress[4] - state3Stress[2]
+                    state3Strain[3] = state3Strain[2] + 0.5 * du
+                    state3Stress[3] = state3Stress[2] + 0.5 * df
+                elseif state3Strain[2] > 0.0
+                    du = state3Strain[3] - state3Strain[1]
+                    df = state3Stress[3] - state3Stress[1]
+                    state3Strain[2] = state3Strain[1] + 0.5 * du
+                    state3Stress[2] = state3Stress[1] + 0.5 * df
+                else
+                    avgforce = 0.5 * (state3Stress[3] + state3Stress[2])
+                    dfr = abs(avgforce / 100)
+                    slope12 = (state3Stress[2] - state3Stress[1]) / (state3Strain[2] - state3Strain[1])
+                    slope34 = (state3Stress[4] - state3Stress[3]) / (state3Strain[4] - state3Strain[3])
+                    state3Stress[2] = avgforce - dfr
+                    state3Stress[3] = avgforce + dfr
+                    state3Strain[2] = state3Strain[1] + (state3Stress[2] - state3Stress[1]) / slope12
+                    state3Strain[3] = state3Strain[4] - (state3Stress[4] - state3Stress[3]) / slope34
+                end
+            end
+        end
+    else
+        du = state3Strain[4] - state3Strain[1]
+        df = state3Stress[4] - state3Stress[1]
+        state3Strain[2] = state3Strain[1] + 0.33 * du
+        state3Strain[3] = state3Strain[1] + 0.67 * du
+        state3Stress[2] = state3Stress[1] + 0.33 * df
+        state3Stress[3] = state3Stress[1] + 0.67 * df
+    end
+
+    checkSlope = state3Stress[1] / state3Strain[1]
+    slope = 0.0
+
+    for i in 1:3
+        du = state3Strain[i+1] - state3Strain[i]
+        df = state3Stress[i+1] - state3Stress[i]
+        if du < 0.0 || df < 0.0
+            du = state3Strain[4] - state3Strain[1]
+            df = state3Stress[4] - state3Stress[1]
+            state3Strain[2] = state3Strain[1] + 0.33 * du
+            state3Strain[3] = state3Strain[1] + 0.67 * du
+            state3Stress[2] = state3Stress[1] + 0.33 * df
+            state3Stress[3] = state3Stress[1] + 0.67 * df
+            slope = df / du
+            break
+        end
+    end
+
+    if slope > 1e-8 && slope < checkSlope
+        state3Strain[2] = 0.0
+        state3Stress[2] = 0.0
+        state3Strain[3] = state3Strain[4] / 2
+        state3Stress[3] = state3Stress[4] / 2
+    end
+
+    return state3Strain, state3Stress
+
+end
+
+
+function negEnvlpTangent(u, envlpNegDamgdStress, envlpNegStrain)
+    k = 0.0
+    i = 1
+
+    while k == 0.0 && i <= 5
+        if u >= envlpNegStrain[i+1]
+            k = (envlpNegDamgdStress[i] - envlpNegDamgdStress[i+1]) /
+                (envlpNegStrain[i] - envlpNegStrain[i+1])
+        end
+        i += 1
+    end
+
+    if k == 0.0
+        k = (envlpNegDamgdStress[5] - envlpNegDamgdStress[6]) /
+            (envlpNegStrain[5] - envlpNegStrain[6])
+    end
+
+    return k
 end
 
 
