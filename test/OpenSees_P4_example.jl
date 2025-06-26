@@ -4,7 +4,7 @@ using Pinching4Model, CairoMakie
 #Consider this OpenSees example:
 #https://opensees.berkeley.edu/wiki/index.php/Pinching4MaterialExample
 
-set peakpts [list 0.0001 0.001 0.002 0.003 0.005 0.006 0.007 0.009 0.01 0.011 0.012 0.013 ]
+# set peakpts [list 0.0001 0.001 0.002 0.003 0.005 0.006 0.007 0.009 0.01 0.011 0.012 0.013 ]
 
 
 half_cycles = [[0.0, 0.0001], 
