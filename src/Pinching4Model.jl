@@ -2,53 +2,53 @@ module Pinching4Model
 
 
 mutable struct Inputs
-    d::Vector{Float64}         # Displacement/strain history
+    d::Vector{Real}         # Displacement/strain history
     dmgtype::String            # "energy" or "cycle"
 
     # Backbone envelope points (strain/stress)
-    strain1p::Float64
-    strain2p::Float64
-    strain3p::Float64
-    strain4p::Float64
-    strain1n::Float64
-    strain2n::Float64
-    strain3n::Float64
-    strain4n::Float64
+    strain1p::Real
+    strain2p::Real
+    strain3p::Real
+    strain4p::Real
+    strain1n::Real
+    strain2n::Real
+    strain3n::Real
+    strain4n::Real
 
-    stress1p::Float64
-    stress2p::Float64
-    stress3p::Float64
-    stress4p::Float64
-    stress1n::Float64
-    stress2n::Float64
-    stress3n::Float64
-    stress4n::Float64
+    stress1p::Real
+    stress2p::Real
+    stress3p::Real
+    stress4p::Real
+    stress1n::Real
+    stress2n::Real
+    stress3n::Real
+    stress4n::Real
 
     # Degradation parameters (pinching & damage)
-    rDispP::Float64
-    rForceP::Float64
-    uForceP::Float64
-    rDispN::Float64
-    rForceN::Float64
-    uForceN::Float64
+    rDispP::Real
+    rForceP::Real
+    uForceP::Real
+    rDispN::Real
+    rForceN::Real
+    uForceN::Real
 
     # Damage model coefficients
-    gammaK1::Float64; gammaK2::Float64; gammaK3::Float64; gammaK4::Float64; gammaKLimit::Float64
-    gammaD1::Float64; gammaD2::Float64; gammaD3::Float64; gammaD4::Float64; gammaDLimit::Float64
-    gammaF1::Float64; gammaF2::Float64; gammaF3::Float64; gammaF4::Float64; gammaFLimit::Float64
+    gammaK1::Real; gammaK2::Real; gammaK3::Real; gammaK4::Real; gammaKLimit::Real
+    gammaD1::Real; gammaD2::Real; gammaD3::Real; gammaD4::Real; gammaDLimit::Real
+    gammaF1::Real; gammaF2::Real; gammaF3::Real; gammaF4::Real; gammaFLimit::Real
 
-    # gK::Vector{Float64}        # Stiffness degradation (gK1 to gK4)
-    # gKLim::Float64
-    # gD::Vector{Float64}        # Deformation degradation (gD1 to gD4)
-    # gDLim::Float64
-    # gF::Vector{Float64}        # Strength degradation (gF1 to gF4)
-    # gFLim::Float64
-    gE::Float64                # Energy-based degradation multiplier
+    # gK::Vector{Real}        # Stiffness degradation (gK1 to gK4)
+    # gKLim::Real
+    # gD::Vector{Real}        # Deformation degradation (gD1 to gD4)
+    # gDLim::Real
+    # gF::Vector{Real}        # Strength degradation (gF1 to gF4)
+    # gFLim::Real
+    gE::Real                # Energy-based degradation multiplier
 
     
-    # gammaK1::Float64; gammaK2::Float64; gammaK3::Float64; gammaK4::Float64; gammaKLimit::Float64
-    # gammaD1::Float64; gammaD2::Float64; gammaD3::Float64; gammaD4::Float64; gammaDLimit::Float64
-    # gammaF1::Float64; gammaF2::Float64; gammaF3::Float64; gammaF4::Float64; gammaFLimit::Float64
+    # gammaK1::Real; gammaK2::Real; gammaK3::Real; gammaK4::Real; gammaKLimit::Real
+    # gammaD1::Real; gammaD2::Real; gammaD3::Real; gammaD4::Real; gammaDLimit::Real
+    # gammaF1::Real; gammaF2::Real; gammaF3::Real; gammaF4::Real; gammaFLimit::Real
 
 
 end
@@ -61,17 +61,17 @@ end
 
 function response(MDL::Inputs)
     # Initialize arrays and variables
-    envlpPosStrain = zeros(6)
-    envlpPosStress = zeros(6)
-    envlpNegStrain = zeros(6)
-    envlpNegStress = zeros(6)
+    envlpPosStrain = zeros(Real, 6)
+    envlpPosStress = zeros(Real, 6)
+    envlpNegStrain = zeros(Real, 6)
+    envlpNegStress = zeros(Real, 6)
 
-    state3Stress = zeros(6)
-    state3Strain = zeros(6)
-    state4Stress = zeros(6)
-    state4Strain = zeros(6)
-    envlpPosDamgdStress = zeros(6)
-    envlpNegDamgdStress = zeros(6)
+    state3Stress = zeros(Real, 6)
+    state3Strain = zeros(Real, 6)
+    state4Stress = zeros(Real, 6)
+    state4Strain = zeros(Real, 6)
+    envlpPosDamgdStress = zeros(Real, 6)
+    envlpNegDamgdStress = zeros(Real, 6)
 
     # Damage type flag
     DmgCyc = MDL.dmgtype == "energy" ? 0 : 1
@@ -125,7 +125,7 @@ function response(MDL::Inputs)
     kunload = 0.0
     elasticStrainEnergy = 0.0
 
-    force = zeros(length(MDL.d))
+    force = zeros(Real, length(MDL.d))
 
     # Envelope calculation
     envlpPosStrain, envlpPosStress, envlpNegStrain, envlpNegStress, kElasticPos, kElasticNeg, energyCapacity =
@@ -180,10 +180,10 @@ end
 
 function SetEnvelop(MDL::Inputs)
     # Initialize outputs
-    envlpPosStrain = zeros(6)
-    envlpPosStress = zeros(6)
-    envlpNegStrain = zeros(6)
-    envlpNegStress = zeros(6)
+    envlpPosStrain = zeros(Real, 6)
+    envlpPosStress = zeros(Real, 6)
+    envlpNegStrain = zeros(Real, 6)
+    envlpNegStress = zeros(Real, 6)
 
     # Initial tangent stiffnesses
     kPos = MDL.stress1p / MDL.strain1p
@@ -239,12 +239,12 @@ end
 
 
 function revertToStart(
-    envlpPosStrain::Vector{Float64},
-    envlpPosStress::Vector{Float64},
-    envlpNegStrain::Vector{Float64},
-    envlpNegStress::Vector{Float64},
-    kElasticPos::Float64,
-    kElasticNeg::Float64
+    envlpPosStrain::Vector{Real},
+    envlpPosStress::Vector{Real},
+    envlpNegStrain::Vector{Real},
+    envlpNegStress::Vector{Real},
+    kElasticPos::Real,
+    kElasticNeg::Real
 )
     # Initial converged state variables
     Cstate = 0
@@ -287,20 +287,20 @@ end
 
 function revertToLastCommit(
     Cstate::Int,
-    CstrainRate::Float64,
-    lowCstateStrain::Float64,
-    lowCstateStress::Float64,
-    hghCstateStrain::Float64,
-    hghCstateStress::Float64,
-    CminStrainDmnd::Float64,
-    CmaxStrainDmnd::Float64,
-    Cenergy::Float64,
-    Cstrain::Float64,
-    Cstress::Float64,
-    CgammaD::Float64,
-    CgammaK::Float64,
-    CgammaF::Float64,
-    CnCycle::Float64
+    CstrainRate::Real,
+    lowCstateStrain::Real,
+    lowCstateStress::Real,
+    hghCstateStrain::Real,
+    hghCstateStress::Real,
+    CminStrainDmnd::Real,
+    CmaxStrainDmnd::Real,
+    Cenergy::Real,
+    Cstrain::Real,
+    Cstress::Real,
+    CgammaD::Real,
+    CgammaK::Real,
+    CgammaF::Real,
+    CnCycle::Real
 )
     Tstate = Cstate
     TstrainRate = CstrainRate
@@ -329,30 +329,30 @@ end
 
 
 function setTrialStrain(
-    strain::Float64, CstrainRate::Float64, Cstate::Int, Cenergy::Float64,
-    lowCstateStrain::Float64, hghCstateStrain::Float64,
-    lowCstateStress::Float64, hghCstateStress::Float64,
-    CminStrainDmnd::Float64, CmaxStrainDmnd::Float64,
-    CgammaF::Float64, CgammaK::Float64, CgammaD::Float64,
-    envlpPosStress::Vector{Float64}, envlpPosStrain::Vector{Float64},
-    kElasticPosDamgd::Float64, kElasticNegDamgd::Float64,
-    state3Strain::Vector{Float64}, state3Stress::Vector{Float64},
-    kunload::Float64, state4Strain::Vector{Float64}, state4Stress::Vector{Float64},
-    Cstrain::Float64, uMaxDamgd::Float64, uMinDamgd::Float64,
-    envlpNegStrain::Vector{Float64}, envlpNegStress::Vector{Float64},
-    kElasticPos::Float64, kElasticNeg::Float64, Cstress::Float64,
-    DmgCyc::Int, CnCycle::Float64, energyCapacity::Float64,
+    strain::Real, CstrainRate::Real, Cstate::Int, Cenergy::Real,
+    lowCstateStrain::Real, hghCstateStrain::Real,
+    lowCstateStress::Real, hghCstateStress::Real,
+    CminStrainDmnd::Real, CmaxStrainDmnd::Real,
+    CgammaF::Real, CgammaK::Real, CgammaD::Real,
+    envlpPosStress::Vector{Real}, envlpPosStrain::Vector{Real},
+    kElasticPosDamgd::Real, kElasticNegDamgd::Real,
+    state3Strain::Vector{Real}, state3Stress::Vector{Real},
+    kunload::Real, state4Strain::Vector{Real}, state4Stress::Vector{Real},
+    Cstrain::Real, uMaxDamgd::Real, uMinDamgd::Real,
+    envlpNegStrain::Vector{Real}, envlpNegStress::Vector{Real},
+    kElasticPos::Real, kElasticNeg::Real, Cstress::Real,
+    DmgCyc::Int, CnCycle::Real, energyCapacity::Real,
     MDL::Inputs,
-    Tstate::Int, Tenergy::Float64, Tstrain::Float64,
-    lowTstateStrain::Float64, hghTstateStrain::Float64,
-    lowTstateStress::Float64, hghTstateStress::Float64,
-    TgammaF::Float64, TgammaK::Float64, TgammaD::Float64,
-    dstrain::Float64, Ttangent::Float64, Tstress::Float64,
-    elasticStrainEnergy::Float64,
-    TminStrainDmnd::Float64, TmaxStrainDmnd::Float64,
-    gammaKUsed::Float64, gammaFUsed::Float64,
-    envlpPosDamgdStress::Vector{Float64}, envlpNegDamgdStress::Vector{Float64},
-    TnCycle::Float64
+    Tstate::Int, Tenergy::Real, Tstrain::Real,
+    lowTstateStrain::Real, hghTstateStrain::Real,
+    lowTstateStress::Real, hghTstateStress::Real,
+    TgammaF::Real, TgammaK::Real, TgammaD::Real,
+    dstrain::Real, Ttangent::Real, Tstress::Real,
+    elasticStrainEnergy::Real,
+    TminStrainDmnd::Real, TmaxStrainDmnd::Real,
+    gammaKUsed::Real, gammaFUsed::Real,
+    envlpPosDamgdStress::Vector{Real}, envlpNegDamgdStress::Vector{Real},
+    TnCycle::Real
 )
     # Trial state initialization
     Tstate = Cstate
@@ -457,16 +457,16 @@ end
 
 
 function commitState(
-    Tstate::Int, dstrain::Float64, TstrainRate::Float64,
-    lowTstateStrain::Float64, lowTstateStress::Float64,
-    hghTstateStrain::Float64, hghTstateStress::Float64,
-    TminStrainDmnd::Float64, TmaxStrainDmnd::Float64,
-    Tenergy::Float64, Tstress::Float64, Tstrain::Float64,
-    TgammaK::Float64, TgammaD::Float64, TgammaF::Float64,
-    kElasticPos::Float64, kElasticNeg::Float64,
-    gammaKUsed::Float64, gammaFUsed::Float64,
-    envlpPosStress::Vector{Float64}, envlpNegStress::Vector{Float64},
-    TnCycle::Float64
+    Tstate::Int, dstrain::Real, TstrainRate::Real,
+    lowTstateStrain::Real, lowTstateStress::Real,
+    hghTstateStrain::Real, hghTstateStress::Real,
+    TminStrainDmnd::Real, TmaxStrainDmnd::Real,
+    Tenergy::Real, Tstress::Real, Tstrain::Real,
+    TgammaK::Real, TgammaD::Real, TgammaF::Real,
+    kElasticPos::Real, kElasticNeg::Real,
+    gammaKUsed::Real, gammaFUsed::Real,
+    envlpPosStress::Vector{Real}, envlpNegStress::Vector{Real},
+    TnCycle::Real
 )
     # Commit state
     Cstate = Tstate
@@ -511,18 +511,18 @@ end
 
 
 function getstate(
-    u::Float64, du::Float64, CstrainRate::Float64, Tstate::Int,
-    lowTstateStrain::Float64, lowTstateStress::Float64,
-    hghTstateStrain::Float64, hghTstateStress::Float64,
-    envlpPosStrain::Vector{Float64}, envlpPosStress::Vector{Float64},
-    Cstrain::Float64, TmaxStrainDmnd::Float64,
-    uMaxDamgd::Float64, uMinDamgd::Float64, CgammaF::Float64,
-    envlpNegStrain::Vector{Float64}, envlpNegStress::Vector{Float64},
-    Cstress::Float64, CgammaK::Float64, kElasticPos::Float64,
-    TminStrainDmnd::Float64, kElasticNeg::Float64,
-    gammaFUsed::Float64, envlpNegDamgdStress::Vector{Float64},
-    gammaKUsed::Float64, kElasticPosDamgd::Float64,
-    envlpPosDamgdStress::Vector{Float64}, kElasticNegDamgd::Float64
+    u::Real, du::Real, CstrainRate::Real, Tstate::Int,
+    lowTstateStrain::Real, lowTstateStress::Real,
+    hghTstateStrain::Real, hghTstateStress::Real,
+    envlpPosStrain::Vector{Real}, envlpPosStress::Vector{Real},
+    Cstrain::Real, TmaxStrainDmnd::Real,
+    uMaxDamgd::Real, uMinDamgd::Real, CgammaF::Real,
+    envlpNegStrain::Vector{Real}, envlpNegStress::Vector{Real},
+    Cstress::Real, CgammaK::Real, kElasticPos::Real,
+    TminStrainDmnd::Real, kElasticNeg::Real,
+    gammaFUsed::Real, envlpNegDamgdStress::Vector{Real},
+    gammaKUsed::Real, kElasticPosDamgd::Real,
+    envlpPosDamgdStress::Vector{Real}, kElasticNegDamgd::Real
 )
 
     cid = du * CstrainRate <= 0.0
@@ -658,7 +658,7 @@ function getstate(
 end
 
 
-function posEnvlpStress(u::Float64, envlpPosDamgdStress::Vector{Float64}, envlpPosStrain::Vector{Float64})
+function posEnvlpStress(u::Real, envlpPosDamgdStress::Vector{Real}, envlpPosStrain::Vector{Real})
     k = 0.0
     f = 0.0
     i = 1
@@ -684,7 +684,7 @@ function posEnvlpStress(u::Float64, envlpPosDamgdStress::Vector{Float64}, envlpP
 end
 
 
-function negEnvlpStress(u::Float64, envlpNegDamgdStress::Vector{Float64}, envlpNegStrain::Vector{Float64})
+function negEnvlpStress(u::Real, envlpNegDamgdStress::Vector{Real}, envlpNegStrain::Vector{Real})
     k = 0.0
     f = 0.0
     i = 1
@@ -712,14 +712,14 @@ end
 
 
 function updateDmg(
-    strain::Float64, dstrain::Float64,
-    TmaxStrainDmnd::Float64, TminStrainDmnd::Float64,
-    envlpPosStrain::Vector{Float64}, envlpNegStrain::Vector{Float64},
-    CnCycle::Float64, Tenergy::Float64, energyCapacity::Float64,
-    DmgCyc::Int, elasticStrainEnergy::Float64,
-    envlpPosDamgdStress::Vector{Float64}, envlpNegDamgdStress::Vector{Float64},
-    kElasticPos::Float64, kElasticNeg::Float64,
-    TnCycle::Float64, TgammaK::Float64, TgammaD::Float64, TgammaF::Float64,
+    strain::Real, dstrain::Real,
+    TmaxStrainDmnd::Real, TminStrainDmnd::Real,
+    envlpPosStrain::Vector{Real}, envlpNegStrain::Vector{Real},
+    CnCycle::Real, Tenergy::Real, energyCapacity::Real,
+    DmgCyc::Int, elasticStrainEnergy::Real,
+    envlpPosDamgdStress::Vector{Real}, envlpNegDamgdStress::Vector{Real},
+    kElasticPos::Real, kElasticNeg::Real,
+    TnCycle::Real, TgammaK::Real, TgammaD::Real, TgammaF::Real,
     MDL::Inputs
 )
     tes = 0.0
@@ -770,7 +770,7 @@ function updateDmg(
 end
 
 
-function Envlp3Tangent(s3Strain::Vector{Float64}, s3Stress::Vector{Float64}, u::Float64)
+function Envlp3Tangent(s3Strain::Vector{Real}, s3Stress::Vector{Real}, u::Real)
     k = 0.0
     i = 1
 
@@ -790,7 +790,7 @@ function Envlp3Tangent(s3Strain::Vector{Float64}, s3Stress::Vector{Float64}, u::
 end
 
 
-function Envlp3Stress(s3Strain::Vector{Float64}, s3Stress::Vector{Float64}, u::Float64)
+function Envlp3Stress(s3Strain::Vector{Real}, s3Stress::Vector{Real}, u::Real)
     k = 0.0
     f = 0.0
     i = 1
@@ -813,7 +813,7 @@ function Envlp3Stress(s3Strain::Vector{Float64}, s3Stress::Vector{Float64}, u::F
 end
 
 
-function Envlp4Tangent(s4Strain::Vector{Float64}, s4Stress::Vector{Float64}, u::Float64)
+function Envlp4Tangent(s4Strain::Vector{Real}, s4Stress::Vector{Real}, u::Real)
     k = 0.0
     i = 1
 
@@ -833,7 +833,7 @@ function Envlp4Tangent(s4Strain::Vector{Float64}, s4Stress::Vector{Float64}, u::
 end
 
 
-function Envlp4Stress(s4Strain::Vector{Float64}, s4Stress::Vector{Float64}, u::Float64)
+function Envlp4Stress(s4Strain::Vector{Real}, s4Stress::Vector{Real}, u::Real)
     k = 0.0
     f = 0.0
     i = 1
@@ -857,17 +857,17 @@ end
 
 
 function getstate3!(
-    state3Strain::Vector{Float64},
-    state3Stress::Vector{Float64},
-    kunload::Float64,
-    kElasticNegDamgd::Float64,
-    lowTstateStrain::Float64,
-    lowTstateStress::Float64,
-    TminStrainDmnd::Float64,
-    envlpNegStrain::Vector{Float64},
-    envlpNegDamgdStress::Vector{Float64},
-    hghTstateStrain::Float64,
-    hghTstateStress::Float64,
+    state3Strain::Vector{Real},
+    state3Stress::Vector{Real},
+    kunload::Real,
+    kElasticNegDamgd::Real,
+    lowTstateStrain::Real,
+    lowTstateStress::Real,
+    TminStrainDmnd::Real,
+    envlpNegStrain::Vector{Real},
+    envlpNegDamgdStress::Vector{Real},
+    hghTstateStrain::Real,
+    hghTstateStress::Real,
     MDL
 )
     kmax = max(kunload, kElasticNegDamgd)
@@ -1095,7 +1095,7 @@ function getstate4(state4Strain, state4Stress, kunload, kElasticPosDamgd,
 end
 
 
-function posEnvlpTangent(u::Float64, envlpPosDamgdStress::Vector{Float64}, envlpPosStrain::Vector{Float64})::Float64
+function posEnvlpTangent(u::Real, envlpPosDamgdStress::Vector{Real}, envlpPosStrain::Vector{Real})::Real
     k = 0.0
     i = 1
 
